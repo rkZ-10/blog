@@ -156,12 +156,20 @@ The full plan, locked decisions and phases live in `docs/HANDOFF.md`; read it be
 - **Stack:** Laravel 13, PHP 8.4 (Herd on Windows), Blade + Tailwind 4, Pest for tests.
 - **Services:** MariaDB 12.3 (`mariadb` driver) and Redis 7 via `docker compose up -d`. Redis client is
   `phpredis` (the extension is enabled in Herd). Cache and queue both use Redis locally.
-- **Tests:** `phpunit.xml` uses in-memory SQLite, array cache and sync queue. Keep migrations portable
-  between SQLite and MariaDB.
+- **Tests:** `phpunit.xml` uses in-memory SQLite, array cache and sync queue; `tests/TestCase.php` calls
+  `withoutVite()`, so no frontend build is needed. Keep migrations
+  portable between SQLite and MariaDB.
 - **Base path:** the site is served under `/blog`. Always use `route()`, `url()`, `asset()` and `@vite`;
   never hard-code root-relative paths.
 - **Admin:** `/admin/*` is local-only (404 elsewhere) and must be excluded from the static export.
 - **Privacy:** email only (arkeshjayakumar@gmail.com); never put a phone number on the site.
+- **Views:** layout is `<x-layouts.app title="...">` (anonymous component). Reusable pieces live in
+  `resources/views/components/` (`site-header`, `site-footer`, `eyebrow`, `section-heading`, `card`,
+  `chip`). Colours are Tailwind theme colours mapped from the portfolio tokens in `resources/css/app.css`
+  (`bg-bg`, `bg-surface`, `text-fg`, `text-muted`, `text-accent`, `bg-accent-soft`, `border-border`,
+  `bg-chip`); widths are `max-w-text` (760px) and `max-w-wide` (980px). Markdown output uses `.prose`.
+- **Fonts:** self-hosted via the Vite plugin's `google()` fonts provider and `@fonts`. Their URLs come
+  from `ASSET_URL` at build time, so the export build must set `ASSET_URL` to the `/blog` URL.
 - **Learning log:** after each phase, add 3-6 interview-style bullets to `docs/LEARNING.md`.
 - **Shell:** PHP is on PATH in PowerShell, not Git Bash. In PowerShell, pass `tinker --execute` code in
   double quotes with single-quoted PHP strings.

@@ -17,7 +17,7 @@ phase by phase and stop for review at the end of each phase.
 | Topic | Decision |
 |---|---|
 | Framework | Laravel 13, PHP 8.4 (via Laravel Herd on Windows), Blade, no starter kit |
-| Tests | PHPUnit (feature tests for every page and rule) |
+| Tests | Pest (ships with Laravel 13; runs on PHPUnit). Feature tests for every page and rule; `LEARNING.md` shows the PHPUnit-class equivalent for interview prep |
 | AI tooling | Laravel Boost is installed (guidelines, skills, MCP). Keep its section of `CLAUDE.md` intact; add project notes **outside** the `<laravel-boost-guidelines>` block |
 | Hosting | **Static export** of the Laravel app to **GitHub Pages**, served at **`https://rkz-10.github.io/blog`** |
 | Export tool | `spatie/laravel-export` (crawls the app, writes static HTML + assets). Check its current README for Laravel 13 support before installing |
@@ -96,7 +96,7 @@ before launch. The downloadable résumé must be a version without the phone num
 - `.env`: `DB_CONNECTION=mariadb`, `CACHE_STORE=redis`, `QUEUE_CONNECTION=redis`, `REDIS_CLIENT` set to
   whatever works on Herd for Windows (check whether the `phpredis` extension is available; otherwise
   install `predis/predis`). Keep `.env.example` in sync. Never commit `.env`.
-- Tests: `phpunit.xml` uses SQLite in memory for speed locally; CI runs the suite against MariaDB too.
+- Tests (Pest): `phpunit.xml` uses SQLite in memory for speed locally; CI runs the suite against MariaDB too.
 - Herd serves the app at `http://02-laravel-blog.test`.
 
 ## 7. Phases (stop after each for Arkesh to review and commit)
