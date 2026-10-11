@@ -1,4 +1,16 @@
 <x-layouts.app :title="$post->title" :description="$post->excerpt">
+    @if ($preview ?? false)
+        <x-slot:head>
+            <meta name="robots" content="noindex, nofollow">
+        </x-slot:head>
+
+        <p role="status" class="mx-auto mb-8 max-w-text rounded-md border border-accent bg-accent-soft px-4 py-2.5 text-sm">
+            @php($state = $post->isPublished() ? 'published' : ($post->published_at ? 'scheduled' : 'a draft'))
+            Preview (local admin only). This post is {{ $state }}.
+            <a href="{{ route('admin.posts.edit', $post) }}">Edit</a>
+        </p>
+    @endif
+
     <article class="mx-auto max-w-text">
         <header>
             <x-post-meta :post="$post" class="mb-2.5" />

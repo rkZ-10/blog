@@ -32,10 +32,28 @@ it('shows the five latest published posts and no drafts', function () {
         ->assertDontSee('Scheduled post');
 });
 
-it('renders empty states when there is no content', function () {
+it('renders an empty state for projects when there are none', function () {
+    $response = $this->get(route('home'));
+
+    $response->assertOk()->assertSee('Projects are on their way.');
+});
+
+it('hides the latest posts section while no post is published', function () {
+    Post::factory()->draft()->create(['title' => 'Unpublished draft']);
+    Post::factory()->scheduled()->create(['title' => 'Scheduled post']);
+
     $response = $this->get(route('home'));
 
     $response->assertOk()
-        ->assertSee('Projects are on their way.')
-        ->assertSee('No posts yet.');
+        ->assertDontSee('Latest posts')
+        ->assertDontSee('No posts yet.')
+        ->assertDontSee('href="'.route('posts.index').'" class="text-muted hover:text-accent"', escape: false);
+});
+
+it('shows the latest posts section once a post is published', function () {
+    Post::factory()->create(['title' => 'First published post']);
+
+    $response = $this->get(route('home'));
+
+    $response->assertOk()->assertSeeInOrder(['Latest posts', 'All posts →', 'First published post']);
 });

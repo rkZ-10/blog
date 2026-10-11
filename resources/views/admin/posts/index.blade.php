@@ -34,6 +34,7 @@
                         @if ($post->isPublished())
                             <a href="{{ route('posts.show', $post) }}">View</a>
                         @endif
+                        <a href="{{ route('admin.posts.show', $post) }}">Preview</a>
                         <a href="{{ route('admin.posts.edit', $post) }}">Edit</a>
                         <form method="POST" action="{{ route('admin.posts.destroy', $post) }}" onsubmit="return confirm('Delete this post?')">
                             @csrf

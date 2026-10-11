@@ -11,6 +11,7 @@ it('returns 404 for admin pages outside the local environment', function (string
     $this->get(route('admin.posts.index'))->assertNotFound();
     $this->get(route('admin.posts.create'))->assertNotFound();
     $this->get(route('admin.posts.edit', $post))->assertNotFound();
+    $this->get(route('admin.posts.show', $post))->assertNotFound();
 })->with(['production', 'testing']);
 
 it('rejects admin writes outside the local environment without changing anything', function () {

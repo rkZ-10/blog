@@ -60,6 +60,10 @@ Body in GitHub-flavoured Markdown.
 Save them in `content/posts/` or `content/projects/` and run `php artisan db:seed`. The seeder is
 idempotent (upserts by slug), so re-running it only applies changes.
 
+Put a post's images in `public/images/posts/<post>/` and link them root-relative, e.g.
+`![Alt text](/images/posts/<post>/screenshot.png)`; they get the `/blog` prefix in the export.
+To check a draft before publishing it, open `/admin/posts/<slug>` locally (the admin preview).
+
 ## Tests
 
 ```sh

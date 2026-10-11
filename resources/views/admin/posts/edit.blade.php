@@ -4,6 +4,7 @@
             {{ $post->reading_minutes }} min read ·
         @endif
         last saved {{ $post->updated_at->diffForHumans() }}
+        · <a href="{{ route('admin.posts.show', $post) }}">Preview</a>
         @if ($post->isPublished())
             · <a href="{{ route('posts.show', $post) }}">View post</a>
         @endif

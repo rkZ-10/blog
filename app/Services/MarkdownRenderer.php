@@ -6,7 +6,10 @@ use Illuminate\Container\Attributes\Singleton;
 use Illuminate\Support\Facades\Cache;
 use Illuminate\Support\Str;
 use League\CommonMark\Environment\Environment;
+use League\CommonMark\Event\DocumentParsedEvent;
 use League\CommonMark\Extension\CommonMark\CommonMarkCoreExtension;
+use League\CommonMark\Extension\CommonMark\Node\Inline\Image;
+use League\CommonMark\Extension\CommonMark\Node\Inline\Link;
 use League\CommonMark\Extension\GithubFlavoredMarkdownExtension;
 use League\CommonMark\Extension\HeadingPermalink\HeadingPermalinkExtension;
 use League\CommonMark\Extension\HeadingPermalink\HeadingPermalinkProcessor;
@@ -63,7 +66,37 @@ class MarkdownRenderer
      */
     public function renderCached(string $key, string $markdown): string
     {
-        return Cache::remember("markdown.{$key}", now()->addWeek(), fn (): string => $this->render($markdown));
+        // The output contains absolute URLs (see resolveRootRelativeUrls), so HTML rendered for one site
+        // root (Herd, the export) must never be served for another.
+        $root = substr(md5(url('/')), 0, 8);
+
+        return Cache::remember("markdown.{$root}.{$key}", now()->addWeek(), fn (): string => $this->render($markdown));
+    }
+
+    /**
+     * Turn root-relative link and image URLs ("/images/x.png") into full URLs through url(), so they
+     * keep the app's base path: the export lives under /blog, where "/images/x.png" would point
+     * outside the site. Protocol-relative ("//host") and fragment-only URLs are left alone. Images
+     * also get lazy loading.
+     */
+    private function resolveRootRelativeUrls(DocumentParsedEvent $event): void
+    {
+        foreach ($event->getDocument()->iterator() as $node) {
+            if (! $node instanceof Link && ! $node instanceof Image) {
+                continue;
+            }
+
+            $nodeUrl = $node->getUrl();
+
+            if (str_starts_with($nodeUrl, '/') && ! str_starts_with($nodeUrl, '//')) {
+                $node->setUrl(url($nodeUrl));
+            }
+
+            if ($node instanceof Image) {
+                $node->data->set('attributes/loading', 'lazy');
+                $node->data->set('attributes/decoding', 'async');
+            }
+        }
     }
 
     private function converter(): MarkdownConverter
@@ -93,6 +126,7 @@ class MarkdownRenderer
         $environment->addExtension(new CommonMarkCoreExtension);
         $environment->addExtension(new GithubFlavoredMarkdownExtension);
         $environment->addExtension(new HeadingPermalinkExtension);
+        $environment->addEventListener(DocumentParsedEvent::class, $this->resolveRootRelativeUrls(...));
 
         return $this->converter = new MarkdownConverter($environment);
     }

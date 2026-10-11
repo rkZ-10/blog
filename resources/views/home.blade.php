@@ -33,13 +33,15 @@
         @endif
     </section>
 
-    <section class="mx-auto max-w-text border-t border-border py-9">
-        <x-section-heading title="Latest posts">
-            <x-slot:aside>
-                <a href="{{ route('posts.index') }}" class="text-muted hover:text-accent">All posts →</a>
-            </x-slot:aside>
-        </x-section-heading>
+    @if ($latestPosts->isNotEmpty())
+        <section class="mx-auto max-w-text border-t border-border py-9">
+            <x-section-heading title="Latest posts">
+                <x-slot:aside>
+                    <a href="{{ route('posts.index') }}" class="text-muted hover:text-accent">All posts →</a>
+                </x-slot:aside>
+            </x-section-heading>
 
-        <x-post-list :posts="$latestPosts" />
-    </section>
+            <x-post-list :posts="$latestPosts" />
+        </section>
+    @endif
 </x-layouts.app>

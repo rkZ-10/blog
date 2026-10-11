@@ -21,6 +21,17 @@ it('returns an rss feed of published posts with absolute links', function () {
         ->assertDontSee('Feed draft');
 });
 
+it('sets the feed language from the app locale', function (string $locale, string $language) {
+    app()->setLocale($locale);
+
+    $response = $this->get(route('feed'));
+
+    $response->assertOk()->assertSee("<language>{$language}</language>", escape: false);
+})->with([
+    'default' => ['en', 'en'],
+    'regional' => ['en_GB', 'en-gb'],
+]);
+
 it('returns well-formed xml when titles contain markup characters', function () {
     Post::factory()->create(['title' => 'Ampersands & <angle brackets>']);
 

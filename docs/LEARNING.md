@@ -141,3 +141,170 @@ Laravel concepts used in each phase, and how to explain them in an interview.
 - **Vite asset base.** `ASSET_URL` at `npm run build` time becomes Vite's `base`, so CSS and the
   self-hosted `@font-face` URLs point at `/blog/build/...`; at runtime `asset()` and `@vite` read
   the same variable.
+
+## Pest and its PHPUnit equivalents
+
+Pest is a layer over PHPUnit (13 here): every `it()` becomes a PHPUnit test method at runtime, and
+`$this` inside a test closure is a `Tests\TestCase` instance, so all of Laravel's assertions work the
+same way. Many Laravel teams write plain PHPUnit classes, so here are this repo's tests in that form.
+
+| Pest | PHPUnit |
+|---|---|
+| `pest()->extend(TestCase::class)->use(RefreshDatabase::class)->in('Feature')` (tests/Pest.php) | `class XTest extends TestCase { use RefreshDatabase; }` in every feature test class (or a shared base class) |
+| `it('returns 404 for an unknown slug', fn () => ...)` | `#[Test] public function it_returns_404_for_an_unknown_slug(): void` (or a `test...` method name) |
+| `beforeEach(fn () => ...)` / `afterEach(...)` | `protected function setUp(): void { parent::setUp(); ... }` / `tearDown()` |
+| `describe('store', ...)` | No direct equivalent: a separate class (`AdminPostStoreTest`) or a method-name prefix |
+| `->with([...])` dataset | `#[DataProvider('name')]` pointing at a `public static function name(): array` (or `iterable` with `yield`) |
+| `->throws(Exception::class, 'message')` | `$this->expectException(...)` and `$this->expectExceptionMessage(...)` before the act step |
+| `expect($a)->toBe($b)` | `$this->assertSame($b, $a)` (expected value first) |
+| `expect($a)->toEqualCanonicalizing($b)` | `$this->assertEqualsCanonicalizing($b, $a)` |
+| `expect($x)->toBeNull()` / `->toBeTrue()` / `->toBeEmpty()` | `assertNull` / `assertTrue` / `assertEmpty` |
+| `expect($post)->title->toBe('A')->slug->toBe('a')` (chained property expectations) | one `assertSame` per property |
+
+**A dataset of models** (`tests/Feature/Http/Controllers/PostControllerTest.php`). Pest runs dataset
+closures lazily, after the app has booted. PHPUnit calls data providers *before* `setUp()`, with no
+application or database yet, so the provider has to return a description (here a factory state name)
+and the test builds the model itself:
+
+```php
+// Pest
+it('returns 404 for drafts and scheduled posts', function (Post $post) {
+    $this->get(route('posts.show', $post))->assertNotFound();
+})->with([
+    'draft' => fn () => Post::factory()->draft()->create(),
+    'scheduled' => fn () => Post::factory()->scheduled()->create(),
+]);
+```
+
+```php
+// PHPUnit
+namespace Tests\Feature\Http\Controllers;
+
+use App\Models\Post;
+use Illuminate\Foundation\Testing\RefreshDatabase;
+use PHPUnit\Framework\Attributes\DataProvider;
+use PHPUnit\Framework\Attributes\Test;
+use Tests\TestCase;
+
+class PostControllerTest extends TestCase
+{
+    use RefreshDatabase;
+
+    /** @return array<string, array{string}> */
+    public static function unpublishedStates(): array
+    {
+        return ['draft' => ['draft'], 'scheduled' => ['scheduled']];
+    }
+
+    #[Test]
+    #[DataProvider('unpublishedStates')]
+    public function it_returns_404_for_drafts_and_scheduled_posts(string $state): void
+    {
+        $post = Post::factory()->{$state}()->create();
+
+        $this->get(route('posts.show', $post))->assertNotFound();
+    }
+}
+```
+
+**Plain values in a dataset** (`tests/Feature/Jobs/ProcessPostTest.php`). This one translates directly:
+
+```php
+// Pest
+it('computes reading minutes at 200 words per minute, rounding up', function (int $words, int $expectedMinutes) {
+    $post = Post::factory()->createQuietly(['body_markdown' => str_repeat('word ', $words)]);
+
+    expect(runProcessPost($post)->reading_minutes)->toBe($expectedMinutes);
+})->with([
+    'short post' => [20, 1],
+    'exactly two minutes' => [400, 2],
+    'just over two minutes' => [401, 3],
+]);
+```
+
+```php
+// PHPUnit
+public static function wordCounts(): array
+{
+    return [
+        'short post' => [20, 1],
+        'exactly two minutes' => [400, 2],
+        'just over two minutes' => [401, 3],
+    ];
+}
+
+#[Test]
+#[DataProvider('wordCounts')]
+public function it_computes_reading_minutes_at_200_words_per_minute(int $words, int $expectedMinutes): void
+{
+    $post = Post::factory()->createQuietly(['body_markdown' => str_repeat('word ', $words)]);
+
+    (new ProcessPost($post))->handle(app(MarkdownRenderer::class));
+
+    $this->assertSame($expectedMinutes, $post->refresh()->reading_minutes);
+}
+```
+
+The Pest file's global helper `runProcessPost()` becomes a `private function` on the class.
+
+**`beforeEach` and fakes** (`tests/Feature/Observers/PostObserverTest.php`):
+
+```php
+// Pest
+beforeEach(function () {
+    Queue::fake();
+});
+
+it('queues processing when a post is created', function () {
+    $post = Post::factory()->create();
+
+    Queue::assertPushed(ProcessPost::class, fn (ProcessPost $job) => $job->post->is($post));
+});
+```
+
+```php
+// PHPUnit
+protected function setUp(): void
+{
+    parent::setUp(); // boots the app; must come first
+
+    Queue::fake();
+}
+
+#[Test]
+public function it_queues_processing_when_a_post_is_created(): void
+{
+    $post = Post::factory()->create();
+
+    Queue::assertPushed(ProcessPost::class, fn (ProcessPost $job) => $job->post->is($post));
+}
+```
+
+**Expected exceptions** (`tests/Feature/Database/Seeders/ContentSeederTest.php`). Pest declares it
+after the test; PHPUnit declares it before the code that throws:
+
+```php
+// Pest
+it('rejects a post without a title and names the file', function () {
+    config(['blog.content_path' => base_path('tests/Fixtures/content-invalid')]);
+
+    $this->seed(ContentSeeder::class);
+})->throws(InvalidArgumentException::class, 'missing-title.md: The title field is required.');
+```
+
+```php
+// PHPUnit
+#[Test]
+public function it_rejects_a_post_without_a_title_and_names_the_file(): void
+{
+    config(['blog.content_path' => base_path('tests/Fixtures/content-invalid')]);
+
+    $this->expectException(InvalidArgumentException::class);
+    $this->expectExceptionMessage('missing-title.md: The title field is required.');
+
+    $this->seed(ContentSeeder::class);
+}
+```
+
+**Running them.** `php artisan test` runs either style (it wraps Pest or PHPUnit), and both accept
+`--filter`. A project can even mix the two: Pest runs plain PHPUnit classes in the same suite.

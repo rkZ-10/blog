@@ -197,6 +197,9 @@ The full plan, locked decisions and phases live in `docs/HANDOFF.md`; read it be
   source of truth; `php artisan db:seed` runs `ContentSeeder`, which upserts by slug (filename unless
   `slug:` is set). A post without `published_at` is a draft. `Post::published()` is the only definition
   of "public"; use it for every public query, and `Post::bodyHtml()` / `Project::summaryHtml()` to render.
+  Post images live in `public/images/posts/{post}/` and are linked root-relative (`/images/...`);
+  `MarkdownRenderer` rewrites root-relative Markdown links/images through `url()` so they get the
+  `/blog` base path (raw HTML `<img src="/...">` is not rewritten). Rendered HTML is cached per site root.
 - **Routes:** `/`, `/posts`, `/posts/{slug}`, `/projects`, `/projects/{slug}`, `/tags/{slug}`, `/feed.xml`,
   `/sitemap.xml`, `/404.html` (exported as GitHub Pages' 404 page). No pagination (query strings don't
   survive the static export).
@@ -204,7 +207,8 @@ The full plan, locked decisions and phases live in `docs/HANDOFF.md`; read it be
   computes `reading_minutes` and fills an empty excerpt. Locally that's the Redis queue, so run a worker
   (`composer run dev`, or `php artisan queue:work`); tests and the export use `sync`. Code that writes a
   post on purpose without reprocessing uses `saveQuietly()`.
-- **Admin:** `/admin/posts` CRUD (`Admin\PostController`, `StorePostRequest`/`UpdatePostRequest`) is
+- **Admin:** `/admin/posts` CRUD plus a preview of any post, drafts included, at `/admin/posts/{slug}`
+  (`Admin\PostController`, `StorePostRequest`/`UpdatePostRequest`) is
   wrapped in `EnsureLocalEnvironment` (404 unless `APP_ENV=local`). It edits the database only; the
   Markdown files stay the source of truth. Admin tests set `$this->app['env'] = 'local'` and disable
   `PreventRequestForgery`, because Laravel only skips CSRF while the env is `testing`.

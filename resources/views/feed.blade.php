@@ -4,7 +4,7 @@
         <title>{{ config('app.name') }}</title>
         <link>{{ route('home') }}</link>
         <description>Notes on backend systems and AI tooling.</description>
-        <language>en</language>
+        <language>{{ strtolower(str_replace('_', '-', app()->getLocale())) }}</language>
         <atom:link href="{{ route('feed') }}" rel="self" type="application/rss+xml" />
         @if ($posts->isNotEmpty())
             <lastBuildDate>{{ $posts->first()->published_at->toRssString() }}</lastBuildDate>

@@ -54,6 +54,17 @@ class PostController extends Controller
     }
 
     /**
+     * Preview a post with the public template, whatever its publish state.
+     */
+    public function show(Post $post): View
+    {
+        return view('posts.show', [
+            'post' => $post->load(['tags', 'project']),
+            'preview' => true,
+        ]);
+    }
+
+    /**
      * Show the form for editing a post.
      */
     public function edit(Post $post): View

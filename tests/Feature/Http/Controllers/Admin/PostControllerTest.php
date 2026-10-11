@@ -43,6 +43,33 @@ describe('index', function () {
     });
 });
 
+describe('show', function () {
+    it('previews a draft with the public post template, marked noindex', function () {
+        $post = Post::factory()->draft()->create([
+            'title' => 'Draft under review',
+            'body_markdown' => 'Some **draft** body.',
+        ]);
+
+        $response = $this->get(route('admin.posts.show', $post));
+
+        $response->assertOk()
+            ->assertSee('Preview (local admin only). This post is a draft.')
+            ->assertSee('<meta name="robots" content="noindex, nofollow">', escape: false)
+            ->assertSeeInOrder(['Draft', 'Draft under review'])
+            ->assertSee('<strong>draft</strong>', escape: false);
+    });
+
+    it('labels a scheduled post in the preview', function () {
+        $post = Post::factory()->create(['published_at' => '2099-01-02 03:04:00']);
+
+        $response = $this->get(route('admin.posts.show', $post));
+
+        $response->assertOk()
+            ->assertSee('This post is scheduled.')
+            ->assertSee('Scheduled');
+    });
+});
+
 describe('store', function () {
     it('creates a post with its tags and redirects to the edit page', function () {
         $project = Project::factory()->create();

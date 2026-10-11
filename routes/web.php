@@ -29,5 +29,5 @@ Route::prefix('admin')
     ->middleware(EnsureLocalEnvironment::class)
     ->group(function () {
         Route::get('/', fn () => to_route('admin.posts.index'))->name('index');
-        Route::resource('posts', AdminPostController::class)->except('show');
+        Route::resource('posts', AdminPostController::class);
     });
