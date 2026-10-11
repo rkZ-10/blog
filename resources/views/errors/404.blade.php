@@ -1,4 +1,8 @@
 <x-layouts.app title="Page not found">
+    <x-slot:head>
+        <meta name="robots" content="noindex">
+    </x-slot:head>
+
     <section class="mx-auto max-w-text">
         <x-eyebrow>404</x-eyebrow>
         <h1 class="text-[2.2rem] font-semibold leading-tight">This page doesn't exist</h1>

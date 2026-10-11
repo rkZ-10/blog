@@ -113,3 +113,31 @@ Laravel concepts used in each phase, and how to explain them in an interview.
 - **Transactions.** The admin create/update wraps the post write and the tag `sync()` in
   `DB::transaction()`, so a failure can't leave a post without its tags, and the after-commit job only
   runs once both are saved.
+
+## Phase 5: Export + deploy
+
+- **Rendering in-process.** `spatie/laravel-export` doesn't run a web server: it builds `Request`
+  objects and passes them straight to the HTTP kernel (`$kernel->handle($request)`), then writes each
+  response body to `dist/`. The full middleware stack, routing, views and the Redis cache all run as
+  normal, which is why the static site needs no separate templates.
+- **Base path / subdirectory installs.** Laravel derives its base URL from `SCRIPT_NAME`, the way PHP
+  reports an app living in a subfolder. In-process requests for `/blog/posts/x` don't carry one, so
+  `MountAtAppUrlPath` (a global middleware, `$middleware->prepend()`) duplicates the request with
+  `SCRIPT_NAME=/blog/index.php`. Routing then sees `/posts/x`, and because the kernel re-binds the
+  request it hands to the router, `route()`, `url()` and `asset()` all keep the `/blog` prefix.
+- **Extending a package through the container.** The package's `Exporter` is a singleton.
+  `AppServiceProvider::register()` re-binds it to `SiteExporter`, a subclass that adds the page list
+  inside `export()`. That keeps the DB queries out of the boot path (the package resolves the
+  exporter on every request) and works however the command is invoked. Listening for the
+  `CommandStarting` event looked simpler but in Laravel 13 it only fires on the real CLI path, not for
+  `Artisan::call()`, which the test caught.
+- **One source of "public".** `PublicPages` feeds both the sitemap and the export list, with crawling
+  turned off, so `/admin` and `/up` can't be exported by accident (tests assert both).
+- **Environment-specific config at deploy time.** CI sets `APP_URL`/`ASSET_URL` to the Pages URL,
+  `APP_ENV=production` for the export, and `QUEUE_CONNECTION=sync` while seeding so `ProcessPost` runs
+  inline. Real environment variables beat `.env` (phpdotenv is immutable), and PHPUnit's `<env>`
+  entries don't override variables already set, which is how the same suite runs on SQLite locally
+  and on MariaDB in CI (against its own database, because `RefreshDatabase` wipes what it touches).
+- **Vite asset base.** `ASSET_URL` at `npm run build` time becomes Vite's `base`, so CSS and the
+  self-hosted `@font-face` URLs point at `/blog/build/...`; at runtime `asset()` and `@vite` read
+  the same variable.

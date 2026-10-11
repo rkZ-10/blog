@@ -58,7 +58,12 @@ class ProcessPost implements ShouldBeUnique, ShouldQueue
         $this->post->reading_minutes = max(1, (int) ceil(str_word_count($plainText) / self::WORDS_PER_MINUTE));
 
         if (blank($this->post->excerpt)) {
-            $this->post->excerpt = Str::limit($plainText, self::EXCERPT_LENGTH, '…', preserveWords: true);
+            $this->post->excerpt = Str::limit(
+                $markdown->proseText($this->post->body_markdown),
+                self::EXCERPT_LENGTH,
+                '…',
+                preserveWords: true,
+            );
         }
 
         // Quietly, so the observer doesn't dispatch this job again in response to its own write.

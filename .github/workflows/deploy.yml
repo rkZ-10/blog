@@ -1,0 +1,120 @@
+name: Test, export and deploy
+
+on:
+  push:
+    branches: [main]
+  workflow_dispatch:
+
+permissions:
+  contents: read
+  pages: write
+  id-token: write
+
+# One deployment at a time; let an in-progress deploy finish rather than cancelling it.
+concurrency:
+  group: pages
+  cancel-in-progress: false
+
+env:
+  SITE_URL: https://rkz-10.github.io/blog
+
+jobs:
+  build:
+    runs-on: ubuntu-latest
+
+    services:
+      mariadb:
+        image: mariadb:12.3
+        env:
+          MARIADB_ROOT_PASSWORD: secret
+          MARIADB_DATABASE: blog
+          MARIADB_USER: blog
+          MARIADB_PASSWORD: secret
+        ports:
+          - 3306:3306
+        options: >-
+          --health-cmd="healthcheck.sh --connect --innodb_initialized"
+          --health-interval=5s --health-timeout=5s --health-retries=20
+      redis:
+        image: redis:7-alpine
+        ports:
+          - 6379:6379
+        options: >-
+          --health-cmd="redis-cli ping"
+          --health-interval=5s --health-timeout=3s --health-retries=20
+
+    steps:
+      - uses: actions/checkout@v5
+
+      - uses: shivammathur/setup-php@v2
+        with:
+          php-version: '8.4'
+          extensions: mbstring, pdo_mysql, redis
+          coverage: none
+
+      - uses: actions/setup-node@v5
+        with:
+          node-version: 22
+          cache: npm
+
+      - name: Install PHP dependencies
+        run: composer install --no-interaction --no-progress --prefer-dist
+
+      - name: Prepare .env
+        run: |
+          cp .env.example .env
+          php artisan key:generate
+
+      # ASSET_URL is baked into the self-hosted @font-face URLs at build time.
+      - name: Build frontend assets
+        run: |
+          npm ci
+          npm run build
+        env:
+          ASSET_URL: ${{ env.SITE_URL }}
+
+      # QUEUE_CONNECTION=sync runs ProcessPost inline, so reading times and generated excerpts are in
+      # place before the export.
+      - name: Migrate and seed content
+        run: php artisan migrate --force --seed
+        env:
+          QUEUE_CONNECTION: sync
+
+      # A separate database: RefreshDatabase wipes whatever it runs against, and the export needs the
+      # seeded content. Cache and queue stay array/sync from phpunit.xml.
+      - name: Run tests against MariaDB
+        run: |
+          mysql --host=127.0.0.1 --user=root --password=secret -e "CREATE DATABASE IF NOT EXISTS blog_testing"
+          php artisan test --compact
+        env:
+          DB_CONNECTION: mariadb
+          DB_DATABASE: blog_testing
+          DB_USERNAME: root
+          DB_PASSWORD: secret
+
+      - name: Export static site
+        run: php artisan export
+        env:
+          APP_ENV: production
+          APP_DEBUG: 'false'
+          APP_URL: ${{ env.SITE_URL }}
+          ASSET_URL: ${{ env.SITE_URL }}
+          QUEUE_CONNECTION: sync
+
+      - uses: actions/configure-pages@v5
+
+      - uses: actions/upload-pages-artifact@v4
+        with:
+          path: dist
+          # Keep .nojekyll (v4 drops dotfiles by default).
+          include-hidden-files: true
+
+  deploy:
+    needs: build
+    runs-on: ubuntu-latest
+    environment:
+      name: github-pages
+      url: ${{ steps.deployment.outputs.page_url }}
+    steps:
+      - id: deployment
+        uses: actions/deploy-pages@v4

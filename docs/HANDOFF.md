@@ -17,7 +17,7 @@ phase by phase and stop for review at the end of each phase.
 | Topic | Decision |
 |---|---|
 | Framework | Laravel 13, PHP 8.4 (via Laravel Herd on Windows), Blade, no starter kit |
-| Tests | Pest (ships with Laravel 13; runs on PHPUnit). Feature tests for every page and rule; `LEARNING.md` shows the PHPUnit-class equivalent for interview prep |
+| Tests | Pest (ships with Laravel 13; runs on PHPUnit). Feature tests for every page and rule; `LEARNING.md` shows the PHPUnit-class equivalent for reference |
 | AI tooling | Laravel Boost is installed (guidelines, skills, MCP). Keep its section of `CLAUDE.md` intact; add project notes **outside** the `<laravel-boost-guidelines>` block |
 | Hosting | **Static export** of the Laravel app to **GitHub Pages**, served at **`https://rkz-10.github.io/blog`** |
 | Export tool | `spatie/laravel-export` (crawls the app, writes static HTML + assets). Check its current README for Laravel 13 support before installing |
@@ -135,7 +135,7 @@ before launch. The downloadable résumé must be a version without the phone num
 - Small commits per phase. Arkesh reviews and pushes. Use the commit attribution lines your environment
   provides.
 - Keep `docs/LEARNING.md` as you go: for each phase, 3-6 bullets of "Laravel concepts used and how to
-  explain them in an interview" (e.g. service container, Eloquent relationships, observers vs events,
+  explain them" (e.g. service container, Eloquent relationships, observers vs events,
   queues, form requests, middleware, config caching). This is part of the deliverable.
 - Keep `README.md` and `CLAUDE.md` current as things change.
 - Prefer Laravel conventions and Boost guidance; run `php artisan test` before saying a phase is done.

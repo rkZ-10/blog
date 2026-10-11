@@ -19,6 +19,9 @@ Route::get('/tags/{tag}', TagController::class)->name('tags.show');
 Route::get('/feed.xml', FeedController::class)->name('feed');
 Route::get('/sitemap.xml', SitemapController::class)->name('sitemap');
 
+// Exported as 404.html, which GitHub Pages serves (with a 404 status) for any unknown path.
+Route::view('/404.html', 'errors.404')->name('not-found');
+
 // Local-only admin (404 in every other environment). Never linked from public pages and excluded
 // from the static export.
 Route::prefix('admin')

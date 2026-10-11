@@ -3,8 +3,12 @@
         ['label' => 'Blog', 'href' => route('posts.index'), 'active' => request()->routeIs('posts.*', 'tags.*')],
         ['label' => 'Projects', 'href' => route('projects.index'), 'active' => request()->routeIs('projects.*')],
         ['label' => 'Portfolio ↗', 'href' => 'https://rkz-10.github.io/', 'active' => false],
-        ['label' => 'Résumé', 'href' => asset('resume.pdf'), 'active' => false],
     ];
+
+    // Shown only once the phone-free résumé has been added to public/.
+    if (file_exists(public_path('resume.pdf'))) {
+        $links[] = ['label' => 'Résumé', 'href' => asset('resume.pdf'), 'active' => false];
+    }
 @endphp
 
 <header class="mx-auto mb-14 flex max-w-text flex-wrap items-baseline justify-between gap-x-6 gap-y-3">

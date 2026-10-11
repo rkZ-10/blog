@@ -12,7 +12,7 @@ front matter in `content/`, seeded into MariaDB.
 - Laravel 13, PHP 8.4, Blade, Tailwind CSS 4, Vite
 - MariaDB 12.3 (main database) and Redis 7 (cache + queue), run locally with Docker
 - Pest for tests
-- `spatie/laravel-export` + GitHub Actions for the static build and deploy (planned)
+- `spatie/laravel-export` + GitHub Actions for the static build and deploy to GitHub Pages
 
 ## Local setup
 
@@ -68,6 +68,27 @@ php artisan test --compact
 
 Tests run against in-memory SQLite with the array cache and sync queue (see `phpunit.xml`), so
 Docker isn't needed for them. CI also runs the suite against MariaDB.
+
+## Export and deploy
+
+Every push to `main` runs `.github/workflows/deploy.yml`: build assets, migrate and seed MariaDB
+(queue on `sync`), run the tests against MariaDB, `php artisan export` into `dist/`, and deploy that
+to GitHub Pages (repo settings: Pages source = GitHub Actions).
+
+To try the export locally under the same `/blog` path:
+
+```sh
+# PowerShell: $env:ASSET_URL="http://localhost:8123/blog"; npm run build; then
+# $env:APP_URL=$env:ASSET_URL; $env:APP_ENV="production"; php artisan export
+ASSET_URL=http://localhost:8123/blog npm run build
+APP_URL=http://localhost:8123/blog ASSET_URL=http://localhost:8123/blog APP_ENV=production php artisan export
+```
+
+Then serve `dist/` so it's reachable at `http://localhost:8123/blog/` (any static server that can mount
+a folder at a sub-path). Run `npm run build` again afterwards to go back to local asset URLs.
+
+Only the pages listed in `App\Services\PublicPages` are exported; the admin area and `/up` never are.
+The Résumé link appears once `public/resume.pdf` exists.
 
 ## Docs
 

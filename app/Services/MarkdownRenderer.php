@@ -41,6 +41,23 @@ class MarkdownRenderer
     }
 
     /**
+     * The plain text of the body's paragraphs only (no headings, tables, lists or code), for
+     * generated excerpts. Falls back to all text when there are no paragraphs.
+     */
+    public function proseText(string $markdown): string
+    {
+        preg_match_all('/<p>(.*?)<\/p>/s', $this->render($markdown), $paragraphs);
+
+        if ($paragraphs[1] === []) {
+            return $this->plainText($markdown);
+        }
+
+        return Str::of(html_entity_decode(strip_tags(implode(' ', $paragraphs[1])), ENT_QUOTES | ENT_HTML5))
+            ->squish()
+            ->toString();
+    }
+
+    /**
      * Render Markdown to HTML, caching the result under the given key. Callers include a version
      * (such as the model's updated_at) in the key so that edits never serve stale HTML.
      */

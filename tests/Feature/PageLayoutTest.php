@@ -6,9 +6,28 @@ it('renders the main navigation on every page', function (string $routeName) {
     $response->assertOk()
         ->assertSee('href="'.route('posts.index').'"', escape: false)
         ->assertSee('href="'.route('projects.index').'"', escape: false)
-        ->assertSee('href="https://rkz-10.github.io/"', escape: false)
-        ->assertSee('href="'.asset('resume.pdf').'"', escape: false);
+        ->assertSee('href="https://rkz-10.github.io/"', escape: false);
 })->with(['home', 'posts.index', 'projects.index']);
+
+it('links the résumé when public/resume.pdf exists', function () {
+    $this->app->usePublicPath(base_path('tests/Fixtures/public-with-resume'));
+
+    $response = $this->get(route('home'));
+
+    $response->assertOk()
+        ->assertSee('href="'.asset('resume.pdf').'"', escape: false)
+        ->assertSee('Résumé');
+});
+
+it('hides the résumé link until public/resume.pdf exists', function () {
+    $this->app->usePublicPath(base_path('tests/Fixtures'));
+
+    $response = $this->get(route('home'));
+
+    $response->assertOk()
+        ->assertDontSee('resume.pdf', escape: false)
+        ->assertDontSee('Résumé');
+});
 
 it('marks the current section as active in the navigation', function (string $routeName, string $activeLabel) {
     $response = $this->get(route($routeName));

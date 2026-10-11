@@ -178,7 +178,13 @@ The full plan, locked decisions and phases live in `docs/HANDOFF.md`; read it be
   portable between SQLite and MariaDB.
 - **Base path:** the site is served under `/blog`. Always use `route()`, `url()`, `asset()` and `@vite`;
   never hard-code root-relative paths.
-- **Export:** `/admin/*` must be excluded from the static export.
+- **Export:** `php artisan export` (spatie/laravel-export) writes `dist/`. Crawling is off: the page list
+  comes from `App\Services\PublicPages::exportUrls()` (also used by the sitemap) via `SiteExporter`, so
+  a new public page type must be added there. `/admin/*` and `/up` must never be exported (tested).
+  `MountAtAppUrlPath` lets the app answer under the `/blog` path in `APP_URL`. Export with
+  `APP_URL`/`ASSET_URL` set to the site URL, and build assets with the same `ASSET_URL` first.
+  `.github/workflows/deploy.yml` does this on push to `main` and deploys `dist/` to Pages.
+- **Résumé:** the nav link appears only when `public/resume.pdf` exists (must be the phone-free version).
 - **Privacy:** email only (arkeshjayakumar@gmail.com); never put a phone number on the site.
 - **Views:** layout is `<x-layouts.app title="...">` (anonymous component). Reusable pieces live in
   `resources/views/components/` (`site-header`, `site-footer`, `eyebrow`, `section-heading`, `card`,
@@ -192,7 +198,8 @@ The full plan, locked decisions and phases live in `docs/HANDOFF.md`; read it be
   `slug:` is set). A post without `published_at` is a draft. `Post::published()` is the only definition
   of "public"; use it for every public query, and `Post::bodyHtml()` / `Project::summaryHtml()` to render.
 - **Routes:** `/`, `/posts`, `/posts/{slug}`, `/projects`, `/projects/{slug}`, `/tags/{slug}`, `/feed.xml`,
-  `/sitemap.xml`. No pagination (query strings don't survive the static export).
+  `/sitemap.xml`, `/404.html` (exported as GitHub Pages' 404 page). No pagination (query strings don't
+  survive the static export).
 - **Queue:** saving a post's body or excerpt queues `ProcessPost` (via `PostObserver`, after commit), which
   computes `reading_minutes` and fills an empty excerpt. Locally that's the Redis queue, so run a worker
   (`composer run dev`, or `php artisan queue:work`); tests and the export use `sync`. Code that writes a

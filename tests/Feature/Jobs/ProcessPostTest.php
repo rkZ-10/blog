@@ -25,13 +25,22 @@ it('computes reading minutes at 200 words per minute, rounding up', function (in
     'just over two minutes' => [401, 3],
 ]);
 
-it('does not count markdown syntax or heading anchors as words', function () {
+it('builds the excerpt from paragraph text, skipping headings, tables and code', function () {
     $post = Post::factory()->createQuietly([
-        'body_markdown' => "## Intro\n\nThe *quick* fox & friends.",
+        'body_markdown' => "## Intro\n\nThe *quick* fox & friends.\n\n| A | B |\n| --- | --- |\n| 1 | 2 |\n\n```php\necho 'hi';\n```\n\nSecond paragraph.",
         'excerpt' => null,
     ]);
 
-    expect(runProcessPost($post)->excerpt)->toBe('Intro The quick fox & friends.');
+    expect(runProcessPost($post)->excerpt)->toBe('The quick fox & friends. Second paragraph.');
+});
+
+it('falls back to all text for an excerpt when the body has no paragraphs', function () {
+    $post = Post::factory()->createQuietly([
+        'body_markdown' => "- first item\n- second item",
+        'excerpt' => null,
+    ]);
+
+    expect(runProcessPost($post)->excerpt)->toBe('first item second item');
 });
 
 it('fills an empty excerpt with the first 160 characters, ending on a whole word', function () {
