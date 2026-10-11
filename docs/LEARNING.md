@@ -79,3 +79,37 @@ Laravel concepts used in each phase, and how to explain them in an interview.
 - **Cache-aside with versioned keys.** `Cache::remember("markdown.posts.{slug}.{updated_at}", ...)`
   stores rendered HTML in Redis. Including `updated_at` in the key means an edit naturally misses the
   cache, so there's no explicit invalidation to forget; old keys just expire after a week.
+
+## Phase 4: Queue + admin
+
+- **Observers vs events.** `PostObserver` groups a model's lifecycle hooks in one class, registered
+  with `#[ObservedBy]` on the model. Model events fire from Eloquent itself (`created`, `updated`,
+  `saved`...); a custom event class is better when several unrelated listeners care, or the trigger
+  isn't a model write. `created` and `updated` are used rather than `saved` because
+  `wasRecentlyCreated` stays true for the life of the instance, so a later update would look like a
+  create. `saveQuietly()` / `createQuietly()` skip model events, which is how the job saves without
+  re-triggering itself.
+- **Queued jobs.** `ProcessPost implements ShouldQueue` is serialised onto the Redis queue and run by
+  `php artisan queue:work` (or `sync` in tests and CI). `SerializesModels` stores only the post's id,
+  so the worker re-fetches the latest row; `#[DeleteWhenMissingModels]` drops the job if the post was
+  deleted meanwhile. `#[Tries(3)]` and `#[Backoff([5, 30])]` retry transient failures, and failures
+  land in `failed_jobs` (`queue:failed`, `queue:retry`).
+- **Unique jobs and after-commit dispatch.** `ShouldBeUnique` + `uniqueId()` take a cache lock per
+  post, so three quick saves queue one job (`#[UniqueFor]` lets a stuck lock expire). `->afterCommit()`
+  holds the dispatch until the surrounding `DB::transaction()` commits and discards it on rollback,
+  so a worker never sees a half-written post. Note `Queue::fake()` ignores `afterCommit`, so that
+  behaviour is tested against the real sync queue.
+- **Form requests.** `StorePostRequest` holds validation (`rules()`), friendly field names
+  (`attributes()`), input normalisation before validation (`prepareForValidation()` slugs the title)
+  and a helper (`tagNames()`). `UpdatePostRequest` extends it and only swaps the unique rule for
+  `Rule::unique(...)->ignore($post)`. Failed validation redirects back with errors and old input
+  (`@error`, `old()`); controllers use `$request->safe()->except('tags')` so only validated fields reach
+  `create()` / `update()`, and `#[Fillable]` is the second line of defence against mass assignment.
+- **Middleware.** `EnsureLocalEnvironment` wraps the `/admin` route group and calls
+  `abort_unless(app()->isLocal(), 404)`: 404 rather than 403 so the routes don't advertise themselves.
+  Route middleware runs after the global `web` group, which is why CSRF (`PreventRequestForgery`)
+  still applies; Laravel skips CSRF only when `APP_ENV=testing`, so tests that switch to `local`
+  disable it explicitly.
+- **Transactions.** The admin create/update wraps the post write and the tag `sync()` in
+  `DB::transaction()`, so a failure can't leave a post without its tags, and the after-commit job only
+  runs once both are saved.

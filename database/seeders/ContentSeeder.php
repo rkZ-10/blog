@@ -5,12 +5,10 @@ namespace Database\Seeders;
 use App\Enums\ProjectStatus;
 use App\Models\Post;
 use App\Models\Project;
-use App\Models\Tag;
 use Illuminate\Database\Seeder;
 use Illuminate\Support\Carbon;
 use Illuminate\Support\Facades\File;
 use Illuminate\Support\Facades\Validator;
-use Illuminate\Support\Str;
 use Illuminate\Validation\Rule;
 use InvalidArgumentException;
 use League\CommonMark\Extension\FrontMatter\Data\SymfonyYamlFrontMatterParser;
@@ -83,27 +81,29 @@ class ContentSeeder extends Seeder
             'project' => ['nullable', 'string', Rule::exists(Project::class, 'slug')],
             'tags' => ['nullable', 'array'],
             'tags.*' => ['string'],
-            'reading_minutes' => ['nullable', 'integer', 'min:1'],
         ]);
+
+        // reading_minutes is computed by the ProcessPost job. The excerpt is only written when the
+        // file sets one, so a generated excerpt survives re-seeding and the record stays unchanged.
+        $attributes = [
+            'project_id' => isset($frontMatter['project'])
+                ? Project::where('slug', $frontMatter['project'])->value('id')
+                : null,
+            'title' => $frontMatter['title'],
+            'body_markdown' => $body,
+            'published_at' => $this->toDate($frontMatter['published_at'] ?? null),
+        ];
+
+        if (filled($frontMatter['excerpt'] ?? null)) {
+            $attributes['excerpt'] = $frontMatter['excerpt'];
+        }
 
         $post = Post::updateOrCreate(
             ['slug' => $frontMatter['slug'] ?? $file->getFilenameWithoutExtension()],
-            [
-                'project_id' => isset($frontMatter['project'])
-                    ? Project::where('slug', $frontMatter['project'])->value('id')
-                    : null,
-                'title' => $frontMatter['title'],
-                'excerpt' => $frontMatter['excerpt'] ?? null,
-                'body_markdown' => $body,
-                'reading_minutes' => $frontMatter['reading_minutes'] ?? null,
-                'published_at' => $this->toDate($frontMatter['published_at'] ?? null),
-            ],
+            $attributes,
         );
 
-        $tagIds = collect($frontMatter['tags'] ?? [])
-            ->map(fn (string $name): int => Tag::firstOrCreate(['slug' => Str::slug($name)], ['name' => $name])->id);
-
-        $post->tags()->sync($tagIds);
+        $post->syncTagNames($frontMatter['tags'] ?? []);
     }
 
     /**

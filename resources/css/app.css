@@ -16,6 +16,7 @@
     --accent-soft: #e3efed;
     --border: #dbe0dd;
     --mono-chip: #eef1ef;
+    --danger: #b42318;
     color-scheme: light;
 }
 
@@ -29,6 +30,7 @@
         --accent-soft: #163631;
         --border: #223430;
         --mono-chip: #182622;
+    --danger: #f97066;
         color-scheme: dark;
     }
 }
@@ -42,6 +44,7 @@
     --accent-soft: #163631;
     --border: #223430;
     --mono-chip: #182622;
+    --danger: #f97066;
     color-scheme: dark;
 }
 
@@ -54,6 +57,7 @@
     --color-accent-soft: var(--accent-soft);
     --color-border: var(--border);
     --color-chip: var(--mono-chip);
+    --color-danger: var(--danger);
 }
 
 @theme {

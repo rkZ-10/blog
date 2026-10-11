@@ -4,6 +4,7 @@ namespace App\Services;
 
 use Illuminate\Container\Attributes\Singleton;
 use Illuminate\Support\Facades\Cache;
+use Illuminate\Support\Str;
 use League\CommonMark\Environment\Environment;
 use League\CommonMark\Extension\CommonMark\CommonMarkCoreExtension;
 use League\CommonMark\Extension\GithubFlavoredMarkdownExtension;
@@ -26,6 +27,17 @@ class MarkdownRenderer
     public function render(string $markdown): string
     {
         return $this->converter()->convert($markdown)->getContent();
+    }
+
+    /**
+     * Render Markdown to plain text (no markup, heading anchors or entities) with whitespace collapsed,
+     * for word counts and generated excerpts.
+     */
+    public function plainText(string $markdown): string
+    {
+        $html = preg_replace('/<a [^>]*class="heading-anchor"[^>]*>.*?<\/a>/s', '', $this->render($markdown));
+
+        return Str::of(html_entity_decode(strip_tags($html), ENT_QUOTES | ENT_HTML5))->squish()->toString();
     }
 
     /**

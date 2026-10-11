@@ -178,7 +178,7 @@ The full plan, locked decisions and phases live in `docs/HANDOFF.md`; read it be
   portable between SQLite and MariaDB.
 - **Base path:** the site is served under `/blog`. Always use `route()`, `url()`, `asset()` and `@vite`;
   never hard-code root-relative paths.
-- **Admin:** `/admin/*` is local-only (404 elsewhere) and must be excluded from the static export.
+- **Export:** `/admin/*` must be excluded from the static export.
 - **Privacy:** email only (arkeshjayakumar@gmail.com); never put a phone number on the site.
 - **Views:** layout is `<x-layouts.app title="...">` (anonymous component). Reusable pieces live in
   `resources/views/components/` (`site-header`, `site-footer`, `eyebrow`, `section-heading`, `card`,
@@ -193,6 +193,14 @@ The full plan, locked decisions and phases live in `docs/HANDOFF.md`; read it be
   of "public"; use it for every public query, and `Post::bodyHtml()` / `Project::summaryHtml()` to render.
 - **Routes:** `/`, `/posts`, `/posts/{slug}`, `/projects`, `/projects/{slug}`, `/tags/{slug}`, `/feed.xml`,
   `/sitemap.xml`. No pagination (query strings don't survive the static export).
+- **Queue:** saving a post's body or excerpt queues `ProcessPost` (via `PostObserver`, after commit), which
+  computes `reading_minutes` and fills an empty excerpt. Locally that's the Redis queue, so run a worker
+  (`composer run dev`, or `php artisan queue:work`); tests and the export use `sync`. Code that writes a
+  post on purpose without reprocessing uses `saveQuietly()`.
+- **Admin:** `/admin/posts` CRUD (`Admin\PostController`, `StorePostRequest`/`UpdatePostRequest`) is
+  wrapped in `EnsureLocalEnvironment` (404 unless `APP_ENV=local`). It edits the database only; the
+  Markdown files stay the source of truth. Admin tests set `$this->app['env'] = 'local'` and disable
+  `PreventRequestForgery`, because Laravel only skips CSRF while the env is `testing`.
 - **Learning log:** after each phase, add 3-6 interview-style bullets to `docs/LEARNING.md`.
 - **Shell:** PHP is on PATH in PowerShell, not Git Bash. In PowerShell, pass `tinker --execute` code in
   double quotes with single-quoted PHP strings.

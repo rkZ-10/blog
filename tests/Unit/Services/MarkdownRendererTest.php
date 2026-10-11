@@ -25,6 +25,12 @@ it('adds ids and anchor links to h2 and h3 headings only', function () {
         ->not->toContain('<h1 id=');
 });
 
+it('converts markdown to plain text without anchors, entities or extra whitespace', function () {
+    $text = (new MarkdownRenderer)->plainText("## Setup & config\n\nRun   `composer install`,\nthen *test*.");
+
+    expect($text)->toBe('Setup & config Run composer install, then test.');
+});
+
 it('strips javascript links', function () {
     $html = (new MarkdownRenderer)->render('[click](javascript:alert(1))');
 

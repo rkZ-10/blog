@@ -58,6 +58,26 @@ it('updates existing records by slug instead of duplicating them', function () {
     expect(Post::where('slug', 'first-post')->value('title'))->toBe('First post');
 });
 
+it('generates missing excerpts and reading times through the queued job', function () {
+    $this->seed(ContentSeeder::class);
+
+    expect(Post::where('slug', 'second-post')->sole())
+        ->excerpt->toBe('Body of the second post.')
+        ->reading_minutes->toBe(1);
+});
+
+it('leaves unchanged records untouched when re-seeded', function () {
+    $this->seed(ContentSeeder::class);
+    $updatedAt = Post::where('slug', 'second-post')->sole()->updated_at;
+
+    $this->travel(1)->minutes();
+    $this->seed(ContentSeeder::class);
+
+    expect(Post::where('slug', 'second-post')->sole())
+        ->updated_at->toEqual($updatedAt)
+        ->excerpt->toBe('Body of the second post.');
+});
+
 it('rejects a post without a title and names the file', function () {
     config(['blog.content_path' => base_path('tests/Fixtures/content-invalid')]);
 

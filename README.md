@@ -32,6 +32,16 @@ npm run dev                 # or: npm run build
 
 With Herd the site is served at http://02-laravel-blog.test.
 
+Saving a post queues a `ProcessPost` job (reading time, generated excerpt) on Redis, so keep a worker
+running: `composer run dev` starts one alongside Vite, or run `php artisan queue:work`.
+
+### Local admin
+
+http://02-laravel-blog.test/admin/posts has create/edit/delete for posts. It only exists when
+`APP_ENV=local` (404 anywhere else) and isn't part of the exported site. It edits the database only:
+the Markdown files in `content/` remain the source of truth, and re-seeding overwrites posts with
+matching slugs.
+
 ## Writing content
 
 Posts and projects are Markdown files with YAML front matter:
