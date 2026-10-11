@@ -97,6 +97,23 @@ This project has domain-specific skills available in `**/skills/**`. You MUST ac
 
 - Laravel can be deployed using [Laravel Cloud](https://cloud.laravel.com/), which is the fastest way to deploy and scale production Laravel applications.
 
+=== herd rules ===
+
+# Laravel Herd
+
+- The application is served by Laravel Herd at `https?://[kebab-case-project-dir].test`. Use the `get-absolute-url` tool to generate valid URLs. Never run commands to serve the site. It is always available.
+- Use the `herd` CLI to manage services, PHP versions, and sites (e.g. `herd sites`, `herd services:start <service>`, `herd php:list`). Run `herd list` to discover all available commands.
+
+=== tests rules ===
+
+# Test Enforcement
+
+- Add or update tests for behavior and logic changes when a test provides meaningful regression coverage.
+- Pure copy, styling, and layout-only changes do not require new or updated tests.
+- When test coverage applies, run the affected tests and ensure they pass.
+- Test the changed behavior and its important failure modes, but do not add tests beyond them.
+- Read the `testing-best-practices` skill before writing tests.
+
 === laravel/core rules ===
 
 # Do Things the Laravel Way
@@ -170,6 +187,12 @@ The full plan, locked decisions and phases live in `docs/HANDOFF.md`; read it be
   `bg-chip`); widths are `max-w-text` (760px) and `max-w-wide` (980px). Markdown output uses `.prose`.
 - **Fonts:** self-hosted via the Vite plugin's `google()` fonts provider and `@fonts`. Their URLs come
   from `ASSET_URL` at build time, so the export build must set `ASSET_URL` to the `/blog` URL.
+- **Content:** `content/projects/*.md` and `content/posts/*.md` (YAML front matter + Markdown body) are the
+  source of truth; `php artisan db:seed` runs `ContentSeeder`, which upserts by slug (filename unless
+  `slug:` is set). A post without `published_at` is a draft. `Post::published()` is the only definition
+  of "public"; use it for every public query, and `Post::bodyHtml()` / `Project::summaryHtml()` to render.
+- **Routes:** `/`, `/posts`, `/posts/{slug}`, `/projects`, `/projects/{slug}`, `/tags/{slug}`, `/feed.xml`,
+  `/sitemap.xml`. No pagination (query strings don't survive the static export).
 - **Learning log:** after each phase, add 3-6 interview-style bullets to `docs/LEARNING.md`.
 - **Shell:** PHP is on PATH in PowerShell, not Git Bash. In PowerShell, pass `tinker --execute` code in
   double quotes with single-quoted PHP strings.

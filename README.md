@@ -25,12 +25,30 @@ cp .env.example .env
 php artisan key:generate
 
 docker compose up -d        # MariaDB on 3306, Redis on 6379
-php artisan migrate
+php artisan migrate --seed  # loads content/ via ContentSeeder
 
 npm run dev                 # or: npm run build
 ```
 
 With Herd the site is served at http://02-laravel-blog.test.
+
+## Writing content
+
+Posts and projects are Markdown files with YAML front matter:
+
+```markdown
+---
+title: Building a travel assistant you can measure
+project: travel-assistant      # optional, a project slug
+tags: [AI, MCP, Evals]
+published_at: 2026-11-01        # omit to keep it a draft
+---
+
+Body in GitHub-flavoured Markdown.
+```
+
+Save them in `content/posts/` or `content/projects/` and run `php artisan db:seed`. The seeder is
+idempotent (upserts by slug), so re-running it only applies changes.
 
 ## Tests
 

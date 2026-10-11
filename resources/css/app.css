@@ -142,6 +142,25 @@
             text-underline-offset: 3px;
         }
 
+        & .heading-anchor {
+            margin-left: 0.35em;
+            color: var(--muted);
+            text-decoration: none;
+            opacity: 0;
+            transition: opacity 0.15s;
+        }
+
+        & h2:hover .heading-anchor,
+        & h3:hover .heading-anchor,
+        & .heading-anchor:focus-visible {
+            opacity: 1;
+        }
+
+        & h2,
+        & h3 {
+            scroll-margin-top: 1.5rem;
+        }
+
         & strong {
             font-weight: 600;
         }

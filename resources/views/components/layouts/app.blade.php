@@ -1,10 +1,11 @@
 @props([
     'title' => null,
-    'description' => 'Notes on backend engineering, AI tooling and the projects Arkesh Jayakumar builds.',
+    'description' => null,
 ])
 
 @php
     $pageTitle = $title ? $title.' · '.config('app.name') : config('app.name');
+    $metaDescription = $description ?: 'Notes on backend engineering, AI tooling and the projects Arkesh Jayakumar builds.';
 @endphp
 
 <!DOCTYPE html>
@@ -14,12 +15,13 @@
     <meta name="viewport" content="width=device-width, initial-scale=1">
 
     <title>{{ $pageTitle }}</title>
-    <meta name="description" content="{{ $description }}">
+    <meta name="description" content="{{ $metaDescription }}">
     <link rel="canonical" href="{{ url()->current() }}">
+    <link rel="alternate" type="application/rss+xml" title="{{ config('app.name') }}" href="{{ route('feed') }}">
 
     <meta property="og:type" content="website">
     <meta property="og:title" content="{{ $pageTitle }}">
-    <meta property="og:description" content="{{ $description }}">
+    <meta property="og:description" content="{{ $metaDescription }}">
     <meta property="og:url" content="{{ url()->current() }}">
 
     {{ $head ?? '' }}

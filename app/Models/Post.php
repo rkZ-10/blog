@@ -1,0 +1,88 @@
+<?php
+
+namespace App\Models;
+
+use App\Services\MarkdownRenderer;
+use Database\Factories\PostFactory;
+use Illuminate\Database\Eloquent\Attributes\Fillable;
+use Illuminate\Database\Eloquent\Attributes\Scope;
+use Illuminate\Database\Eloquent\Builder;
+use Illuminate\Database\Eloquent\Factories\HasFactory;
+use Illuminate\Database\Eloquent\Model;
+use Illuminate\Database\Eloquent\Relations\BelongsTo;
+use Illuminate\Database\Eloquent\Relations\BelongsToMany;
+
+#[Fillable(['project_id', 'title', 'slug', 'excerpt', 'body_markdown', 'reading_minutes', 'published_at'])]
+class Post extends Model
+{
+    /** @use HasFactory<PostFactory> */
+    use HasFactory;
+
+    /**
+     * Get the attributes that should be cast.
+     *
+     * @return array<string, string>
+     */
+    protected function casts(): array
+    {
+        return [
+            'published_at' => 'datetime',
+            'reading_minutes' => 'integer',
+        ];
+    }
+
+    /**
+     * Resolve route model bindings by slug.
+     */
+    public function getRouteKeyName(): string
+    {
+        return 'slug';
+    }
+
+    /**
+     * @return BelongsTo<Project, $this>
+     */
+    public function project(): BelongsTo
+    {
+        return $this->belongsTo(Project::class);
+    }
+
+    /**
+     * @return BelongsToMany<Tag, $this>
+     */
+    public function tags(): BelongsToMany
+    {
+        return $this->belongsToMany(Tag::class)->orderBy('name');
+    }
+
+    /**
+     * Posts whose publish date has passed, newest first. Drafts (null) and scheduled posts are excluded.
+     */
+    #[Scope]
+    protected function published(Builder $query): void
+    {
+        $query->whereNotNull('published_at')
+            ->where('published_at', '<=', now())
+            ->orderByDesc('published_at');
+    }
+
+    /**
+     * Whether the post is visible on the public site.
+     */
+    public function isPublished(): bool
+    {
+        return $this->published_at !== null && $this->published_at->lte(now());
+    }
+
+    /**
+     * The body rendered from Markdown to HTML. Cached per slug and update time, so editing the post
+     * naturally produces a new cache key.
+     */
+    public function bodyHtml(): string
+    {
+        return app(MarkdownRenderer::class)->renderCached(
+            "posts.{$this->slug}.{$this->updated_at?->timestamp}",
+            $this->body_markdown,
+        );
+    }
+}
